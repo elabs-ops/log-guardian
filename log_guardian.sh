@@ -3,20 +3,101 @@
 . ./common.lib.sh
 
 # --- VERIFICATION DES ARGUMENTS ---
-# On vérifie la présence d'argument
+
+do_clean=false
+do_test=false
+
+do_get=false
+do_extract=false
+do_sort=false
+do_threshold=false
+do_export=false
+do_ban=false
+
+do_inspect=false
+
+
+
 if [[ "$#" -gt 0 ]]; then
     for arg in "$@"; do
-        # Si --test présent on lance la generation de tests
-        if [[ "$arg" == "--test" ]]; then
-            generate_test_logs
-        fi
+        case "$arg" in 
+            --clean)
+                do_clean=true
+                ;;
+            --test)
+                do_test=true
+                ;;
+            --get-failed)
+                do_get=true
+                ;;
+            --extract)
+                do_extract=true
+                ;;
+            --sort)
+                do_sort=true
+                ;;
+            --threshold)
+                do_threshold=true
+                ;;
+            --export)
+                do_export=true
+                ;;
+            --inspect)
+                do_inspect=true
+                ;;
+            --ban)
+                do_ban=true
+                ;;
+            *)
+                echo "Argument inconnu : $arg"
+                ;;
+        esac
     done
 fi
 
-echo "V1..."
-extract_data_from_log_V1
-echo "V2..."
-extract_data_from_log_V2
+
+# Exécution dans l'ordre souhaité
+if $do_clean; then
+    echo "Nettoyage du journal de log ssh..."
+    reset_sshd_logs
+fi
+
+if $do_test; then
+    echo "Generation de logs..."
+    generate_test_logs
+fi
+
+if $do_get; then
+    get_failed_lines
+fi
+
+if $do_inspect; then
+    echo "Inspect Failed Attempt"
+    inspect_failed_attempts
+fi
+
+if $do_extract; then
+    extract_ips
+fi
+
+if $do_sort; then
+    sort_ips
+fi
+
+if $do_threshold; then
+    filter_by_threshold
+fi
+
+if $do_export; then
+    export_ips
+fi
+
+if $do_ban; then
+    ban_ips
+fi
+
+
+
 
 
 
