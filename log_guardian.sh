@@ -11,7 +11,6 @@ do_get=false
 do_extract=false
 do_sort=false
 do_threshold=false
-do_export=false
 do_ban=false
 
 do_inspect=false
@@ -38,9 +37,6 @@ if [[ "$#" -gt 0 ]]; then
                 ;;
             --threshold)
                 do_threshold=true
-                ;;
-            --export)
-                do_export=true
                 ;;
             --inspect)
                 do_inspect=true
@@ -88,12 +84,8 @@ if $do_threshold; then
     filter_by_threshold
 fi
 
-if $do_export; then
-    export_ips
-fi
-
 if $do_ban; then
-    ban_ips
+    add_ip_to_ban_list
 fi
 
 
