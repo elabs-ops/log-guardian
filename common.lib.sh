@@ -1,6 +1,11 @@
 # Empêche l'exécution automatique si le fichier est sourcé
 (return 0 2>/dev/null) || exit 0
 
+# Couleurs
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
 
 # --- ZONE DE TEST ---
 
@@ -49,7 +54,7 @@ generate_test_logs(){
 # Format : Mar 17 01:05:33 hostname sshd[21654]: Failed password for root from 192.168.1.100 port 54321 ssh2
 
 # Récupère les lignes de logs SSH concernant les échecs de connexion depuis le début de la journée (--since today)
-get_failed_lines(){
+filter_failed_lines(){
 	journalctl -t sshd --since today | grep -i "failed password"
 }
 
@@ -68,7 +73,7 @@ inspect_failed_attempts(){
 
 # Extrait uniquement les adresses IP des tentatives infructueuses.
 extract_ips(){
-	get_failed_lines | awk '{ 
+	filter_failed_lines | awk '{ 
 		ip="";
 		for(i=1; i<=NF; i++) { 
 			if($i == "from") 
@@ -82,29 +87,30 @@ extract_ips(){
 #	1 - sort : trie les ips
 #	2 - uniq -c : compte les occurences et les affiches sur 1 lignes
 #	3 - sort -rn : trie en ordre décroissant(reverse) par rapport au nombre (numeric)
-sort_ips(){
+stats_ips(){
 	extract_ips | sort | uniq -c | sort -rn
 }
 
 # Filtre les adresses IP ayant dépassé un seuil critique (ici >= 5 tentatives).
 filter_by_threshold(){
-	sort_ips | awk '{ if($1 >= 5) print $2 }'
+	stats_ips | awk '{ if($1 >= 5) print $2 }'
 }
 
 # Compare les IPs suspectes avec la liste blanche et ne garde que celles à bannir.
 apply_whitelisted(){
 	local WHITELIST="whitelist.conf"
 
-	if [[ ! -f "$WHITELIST" ]]; then
-		echo "Erreur : fichier introuvalble"
-		return 1
-	fi
+	touch $WHITELIST
 
 	# grep -Fvf - traites toute la liste d'un coup sans boucle while, ce qui est beaucoup plus rapide
 	# 	-F : Traite les entrées comme des chaines fixes (pas de regex)
 	#	-v : Inverse la recherche - garde ce qui n'est pas dans la whitelist
 	#	-f : Lit les motifs (les IPs à exclure) depuis le fichier spécifié
-	filter_by_threshold | grep -Fvf "$WHITELIST"   
+	if [[ ! -s "$WHITELIST" ]]; then
+    	filter_by_threshold  # Si whitelist vide, on laisse tout passer vers le ban
+	else
+    	filter_by_threshold | grep -Fvf "$WHITELIST"
+	fi  
 }
 
 # Met à jour le fichier de bannissement en fusionnant les anciennes IPs et les nouvelles, sans doublons.
@@ -118,9 +124,83 @@ add_ip_to_ban_list(){
     ) | sort -u > "${FILE}.tmp" && mv "${FILE}.tmp" "$FILE"
 }
 
+ban_ips(){
+	if [[ "$EUID" -ne "0" ]]; then
+		echo "Permissions root nécéssaires"
+		exit 1 
+	fi
+
+	local BANNED_FILE="fail2ban.txt"
+
+    if [[ ! -f "$BANNED_FILE" ]]; then
+        echo "Aucune IP à bannir pour le moment."
+        return 0
+    fi
+
+    echo "--- Application des règles de filtrage ---"
+
+    while read -r ip; do
+    	if iptables -C INPUT -s "$ip" -j DROP &>/dev/null; then
+    		echo "L'IP $ip est déjà bannie."
+    	else
+    		iptables -A INPUT -s "$ip" -j DROP
+    		echo -e "\033[0;31m[BANNED]\033[0m IP $ip a été ajoutée au pare-feu."
+    	fi
+    done < "$BANNED_FILE"
+}
+
+list_ban(){
+	if [[ "$EUID" -ne "0" ]]; then
+		echo "Permissions root nécéssaires"
+		exit 1 
+	fi
+
+	iptables -L INPUT -n -v --line-numbers
+
+	# format scriptable
+	# iptables -S INPUT | grep DROP
+	# ex : -A INPUT -s 192.168.1.10/32 -j DROP
+	# ex : recupérer les ip - iptables -S INPUT | grep DROP | awk '{print $4}'
+}
+
+clear_ban(){
+    if [[ "$EUID" -ne 0 ]]; then
+        echo "Permissions root nécessaires"
+        exit 1 
+    fi
+
+    iptables -F INPUT
+
+    echo "Table INPUT vidée le $(date '+%Y-%m-%d %H:%M:%S')" >> clear_log.txt
+}
 
 
 
+# ---- RAPPORT QUOTIDIEN -----
+
+generate_daily_report(){
+    local DATE=$(date '+%d/%m/%Y')
+    
+    # On compte les IPs uniques dans les logs de la journée
+    local NB_DETECTED=$(extract_ips | sort -u | wc -l)
+    
+    # On compte combien d'IPs sont actuellement dans le fichier de ban
+    local NB_BANNED=$(wc -l < "fail2ban.txt")
+
+    echo "=== Rapport Log Guardian - $DATE ==="
+    echo "Aujourd'hui, $NB_DETECTED IPs ont été détectées."
+    echo "$NB_BANNED IPs sont actuellement sous surveillance/blocage."
+    echo "=========================================="
+}
+
+
+# ---- FONCTION POUR LE CRON ----
+
+
+
+
+
+# ----- HISTORIQUE DES FONCTIONS -----
 
 # Historirque fonctions mal implementée pour garder une trace des erreurs commises
 
@@ -143,6 +223,7 @@ apply_whitelisted_v1(){
 		fi
 	  done 
 }
+
 
 
 # Mauvais exemple : > FILE vide le contenu original du fichier avant même de le lire

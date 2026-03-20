@@ -5,13 +5,14 @@
 # --- VERIFICATION DES ARGUMENTS ---
 
 do_clean=false
-do_test=false
+do_mock=false
 
-do_get=false
-do_extract=false
-do_sort=false
+do_filter=false
+do_extract_ip=false
+do_stats=false
 do_threshold=false
-do_ban=false
+do_build_banlist=false
+do_apply_firewall=false
 
 do_inspect=false
 
@@ -23,17 +24,17 @@ if [[ "$#" -gt 0 ]]; then
             --clean)
                 do_clean=true
                 ;;
-            --test)
-                do_test=true
+            --mock)
+                do_mock=true
                 ;;
-            --get-failed)
-                do_get=true
+            --filter-failed)
+                do_filter=true
                 ;;
-            --extract)
-                do_extract=true
+            --extract-ip)
+                do_extract_ip=true
                 ;;
-            --sort)
-                do_sort=true
+            --stats)
+                do_stats=true
                 ;;
             --threshold)
                 do_threshold=true
@@ -41,8 +42,20 @@ if [[ "$#" -gt 0 ]]; then
             --inspect)
                 do_inspect=true
                 ;;
-            --ban)
-                do_ban=true
+            --build-banlist)
+                do_build_banlist=true
+                ;;
+            --apply-firewall)
+                do_apply_firewall=true
+                ;;
+            --list-ban)
+                list_ban
+                ;;
+            --clear-ban)
+                clear_ban
+                ;;
+            --report)
+                generate_report
                 ;;
             *)
                 echo "Argument inconnu : $arg"
@@ -58,13 +71,13 @@ if $do_clean; then
     reset_sshd_logs
 fi
 
-if $do_test; then
+if $do_mock; then
     echo "Generation de logs..."
     generate_test_logs
 fi
 
-if $do_get; then
-    get_failed_lines
+if $do_filter; then
+    filter_failed_lines
 fi
 
 if $do_inspect; then
@@ -72,20 +85,25 @@ if $do_inspect; then
     inspect_failed_attempts
 fi
 
-if $do_extract; then
+if $do_extract_ip; then
     extract_ips
 fi
 
-if $do_sort; then
-    sort_ips
+if $do_stats; then
+    stats_ips
 fi
 
 if $do_threshold; then
     filter_by_threshold
 fi
 
-if $do_ban; then
+if $do_build_banlist; then
+    echo "Sauvegarde des ip menaçante dans ./fail2ban.txt..."
     add_ip_to_ban_list
+fi
+
+if $do_apply_firewall; then
+    ban_ips
 fi
 
 
