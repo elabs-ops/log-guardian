@@ -2,12 +2,6 @@
 
 # --- CONSTANTES GLOBALES ---
 
-# Couleur pour les messages console (echo)
-#readonly RED="\e[31m"
-#readonly GREEN="\e[32m"
-#readonly YELLOW="\e[33m"
-#readonly RESET="\e[0m"
-
 #  awk ne comprend que \033 ou \x1b pour ESC, pas \e
 
 readonly RED="\033[31m"
@@ -17,7 +11,7 @@ readonly RESET="\033[0m"
 
 
 # On définit le chemin du fichier config
-readonly CONFIG_PATH="config/guardian.conf"
+readonly CONFIG_PATH="${PROJECT_ROOT}/config/guardian.conf"
 
 # On charge le fichier s'il existe
 if [[ -f "$CONFIG_PATH" ]]; then
@@ -26,12 +20,12 @@ fi
 
 # Valeurs par défaut (si non définies dans le .conf)
 readonly BAN_THRESHOLD="${BAN_THRESHOLD:-5}"
-readonly APP_VAR_DIR="${VAR_DIR:-var}"
-readonly APP_LOG_DIR="${LOG_DIR:-log}"
-readonly APP_CONF_DIR="${CONF_DIR:-config}"
+readonly APP_VAR_DIR="${PROJECT_ROOT}/${VAR_DIR:-var}"
+readonly APP_LOG_DIR="${PROJECT_ROOT}/${LOG_DIR:-log}"
+readonly APP_CONF_DIR="${PROJECT_ROOT}/${CONF_DIR:-config}"
 
 
-readonly APP_VAR_REPORTS_DIR="var/reports"
+readonly APP_VAR_REPORTS_DIR="${APP_VAR_DIR}/reports"
 
 # Chemins complets
 readonly BANNED_IPS_DB="$APP_VAR_DIR/${BANNED_DB:-banned_ips.db}"
@@ -46,7 +40,7 @@ ensure_directories_exist() {
         [[ -f "$FIREWALL_LOG" ]] || touch "$FIREWALL_LOG"
 
         # Fichier de config : peut être dans le repo
-        [[ -f "$WHITELIST_FILE" ]] || touch "$WHITELIST_FILE"
+        [[ -f "$WHITELIST_FILE" ]] || echo "# Whitelist" > "$WHITELIST_FILE"
     fi
 }
 
@@ -73,17 +67,15 @@ ensure_local_ips_whitelisted() {
 
     require_runtime_file "$WHITELIST_FILE"
 
-    for ip in "$local_ip" "$loop"; do
+    for ip in "$local_ip" "$loopback"; do
         if [[ -n "$ip" ]] && ! grep -q "$ip" "$WHITELIST_FILE"; then
             echo "$ip" >> "$WHITELIST_FILE"
             display_info "Protection : $ip ajouté à la whitelist (auto)."
         fi
     done
-
 }
 
 require_runtime_file(){
-    echo "DANS REQUIRE"
     local file="$1"
     if [[ ! -f "$file" ]]; then
         display_error "Fichier runtime manquant : $file"

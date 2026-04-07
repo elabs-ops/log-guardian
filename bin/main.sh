@@ -1,20 +1,18 @@
 #!/bin/bash
+#set -eo pipefail
 
 # Initialisation de l'environnement
-BASE_DIR=$(dirname "$(readlink -f "$0")")
-cd "$BASE_DIR"
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+cd "$SCRIPT_DIR"
 # echo $PWD
 
 
 # Import des modules
-. "$BASE_DIR/lib/utils.lib.sh"
-. "$BASE_DIR/lib/core.lib.sh"
-. "$BASE_DIR/lib/firewall.lib.sh"
-. "$BASE_DIR/lib/tests.lib.sh"
-
-
-# Création des dossiers et fichier requis
-ensure_directories_exist
+. "$PROJECT_ROOT/lib/utils.lib.sh"
+. "$PROJECT_ROOT/lib/core.lib.sh"
+. "$PROJECT_ROOT/lib/firewall.lib.sh"
+. "$PROJECT_ROOT/lib/tests.lib.sh"
 
 # Gestion des arguments
 case "$1" in
@@ -46,6 +44,7 @@ case "$1" in
     --update)
     	ensure_not_root_permission
     	require_runtime_file "$BANNED_IPS_DB"
+        ensure_local_ips_whitelisted
 
         # ÉTAPE 1 : On récupère les IPs malveillantes via core.lib
         targets_to_ban=$(identify_malicious_ips)
@@ -77,9 +76,6 @@ case "$1" in
     	ensure_not_root_permission
         generate_security_report | tee "${APP_VAR_REPORTS_DIR}/security_report_$(date +%F).txt"
         ;;
-    --repair)
-        ensure_not_root_permission
-        ensure_directories_exist ;;
     --firewall-flush)
     	ensure_root_permission
         flush_firewall_rules ;;
@@ -91,6 +87,9 @@ case "$1" in
     	input=$(iptables -S INPUT | grep -c " -j DROP")
     	echo "IPs réellement bloquées : $input"
     	;;
+    --repair)
+    	ensure_not_root_permission
+    	ensure_directories_exist ;;
     *)
         echo "Usage: $0 {--stats|--parsed-raw|--malicious|--update|--apply-bans|--report|--repair|--firewall-flush|--firewall-list|firewall-status|--mock|--flush-logs}"
         exit 1 ;;
