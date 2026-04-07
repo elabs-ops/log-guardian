@@ -67,6 +67,21 @@ ensure_not_root_permission() {
     }
 }
 
+ensure_local_ips_whitelisted() {
+    local local_ip=$(hostname -I | awk '{ print $1 }')
+    local loopback="127.0.0.1"
+
+    require_runtime_file "$WHITELIST_FILE"
+
+    for ip in "$local_ip" "$loop"; do
+        if [[ -n "$ip" ]] && ! grep -q "$ip" "$WHITELIST_FILE"; then
+            echo "$ip" >> "$WHITELIST_FILE"
+            display_info "Protection : $ip ajouté à la whitelist (auto)."
+        fi
+    done
+
+}
+
 require_runtime_file(){
     echo "DANS REQUIRE"
     local file="$1"
