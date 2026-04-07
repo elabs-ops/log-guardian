@@ -35,6 +35,10 @@ cd log-guardian
 chmod +x main.sh
 ./main.sh --repair ou ./install.sh  # Initialise l'arborescence
 ```
+### Installation rapide
+```bash
+make install
+```
 
 ### Les commandes
 ```bash

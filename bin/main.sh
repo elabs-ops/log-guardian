@@ -61,7 +61,12 @@ case "$1" in
         	display_success "Aucune nouvelle menace identifiée."
         fi ;;
     --apply-bans)
-    	ensure_root_permission
+    	#ensure_root_permission
+        # Si je ne suis pas root, je me relance moi-même avec sudo
+        if [[ "$EUID" -ne 0 ]]; then
+            display_info "Élévation des privilèges via sudo..."
+            exec sudo "$0" "$@"
+        fi
     	require_runtime_file "$BANNED_IPS_DB"
     	# ÉTAPE 4 : On applique les règles iptables
         if [[ -s "$BANNED_IPS_DB" ]]; then
@@ -69,7 +74,7 @@ case "$1" in
         	display_success "Règles iptables mises à jour."
     		exit 0
         else
-        	display_info "Fichier non trouvé. Pas de règle à appliquer"
+        	display_info "Fichier vide. Pas de règle à appliquer"
         fi
     	;;
     --report)

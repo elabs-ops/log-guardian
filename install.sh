@@ -52,4 +52,4 @@ display_success "Installation terminée avec succès !"
 # Vérifier si le lien symb existe -L
 #if [[ -L "$full_bin_path" ]]; then
 #	rm "$full_bin_path"
-#fiport
+#fi

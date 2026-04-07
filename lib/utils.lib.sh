@@ -64,10 +64,11 @@ ensure_not_root_permission() {
 ensure_local_ips_whitelisted() {
     local local_ip=$(hostname -I | awk '{ print $1 }')
     local loopback="127.0.0.1"
+    local current_ssh_ip=$(echo $SSH_CLIENT | awk '{print $1}')
 
     require_runtime_file "$WHITELIST_FILE"
 
-    for ip in "$local_ip" "$loopback"; do
+    for ip in "$local_ip" "$loopback" "$current_ssh_ip"; do
         if [[ -n "$ip" ]] && ! grep -q "$ip" "$WHITELIST_FILE"; then
             echo "$ip" >> "$WHITELIST_FILE"
             display_info "Protection : $ip ajouté à la whitelist (auto)."
@@ -83,7 +84,6 @@ require_runtime_file(){
         exit 1
     fi
 }
-
 
 display_info() { echo -e "${YELLOW}[INFO]${RESET} $1"; }
 display_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
