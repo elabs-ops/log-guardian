@@ -46,29 +46,25 @@ case "$1" in
     	require_runtime_file "$BANNED_IPS_DB"
         ensure_local_ips_whitelisted
 
-        # ÉTAPE 1 : On récupère les IPs malveillantes via core.lib
         targets_to_ban=$(identify_malicious_ips)
 
    		display_info "Mise à jour des protections..."
 
-        # ÉTAPE 2 : On vérifie s'il y a des ips à bannir
         if [[ -n "$targets_to_ban" ]]; then
         	display_info "Nouvelles menaces détectées. Action en cours..."
 
-        	# ÉTAPE 3 : On envoie ces IPs à firewall.lib pour persistance
         	persist_banned_ips "$targets_to_ban"
         else	
         	display_success "Aucune nouvelle menace identifiée."
         fi ;;
     --apply-bans)
     	#ensure_root_permission
-        # Si je ne suis pas root, je me relance moi-même avec sudo
+        # Si non root, utilisation de sudo (vérifier sudoers)
         if [[ "$EUID" -ne 0 ]]; then
             display_info "Élévation des privilèges via sudo..."
             exec sudo "$0" "$@"
         fi
     	require_runtime_file "$BANNED_IPS_DB"
-    	# ÉTAPE 4 : On applique les règles iptables
         if [[ -s "$BANNED_IPS_DB" ]]; then
         	enforce_firewall_rules
         	display_success "Règles iptables mises à jour."

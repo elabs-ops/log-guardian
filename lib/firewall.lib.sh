@@ -2,7 +2,7 @@
 
 #set -e
 
-# Créer ou Mettre à jour le fichier de sauvegarde des ip à bannir
+# Créer ou mettre à jour le fichier de sauvegarde des ip à bannir
 # Accepte 1 argument new_ips : les ips à ajouter au fichier
 persist_banned_ips(){
 	local new_ips="$1"

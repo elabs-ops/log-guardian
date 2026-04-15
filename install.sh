@@ -14,7 +14,7 @@ if [[ "$EUID" -eq 0 ]]; then
     exit 1
 fi
 
-# 1. Créer l'arborescence (via ta fonction dans utils.lib.sh)
+# 1. Créer l'arborescence (utils.lib.sh)
 ensure_directories_exist
 
 # 2. Rendre le script principal exécutable
