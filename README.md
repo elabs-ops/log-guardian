@@ -13,13 +13,25 @@
 ## 📁 Architecture du Projet
 Le projet suit une structure modulaire inspirée des standards Linux :
 ```text
-.
-├── main.sh             # Point d'entrée unique (CLI)
-├── config/             # Configuration et Whitelist
-├── lib/                # Bibliothèques de fonctions (Core, Firewall, Utils...)
-├── log/                # Historique des actions du pare-feu
-├── var/                # Base de données des IPs et rapports
-└── README.md           # Documentation
+log-guardian/
+├── Makefile                # Façade pour l'installation et les commandes rapides
+├── install.sh              # Script d'installation (PATH, Symlinks, Dirs)
+├── bin/                    # Exécutables
+│   └── main.sh             # Point d'entrée (lié à ~/.local/bin/logguardian)
+├── config/                 # Configuration statique
+│   ├── guardian.conf       # Paramètres (seuil, noms de fichiers)
+│   └── whitelist.conf      # IPs protégées (auto-rempli par install.sh)
+├── lib/                    # Logique métier (Bibliothèques)
+│   ├── core.lib.sh         # Analyse, extraction et filtrage des logs
+│   ├── firewall.lib.sh     # Gestion iptables et persistance
+│   ├── tests.lib.sh        # Fonctions de Mock/Simulation
+│   └── utils.lib.sh        # Utilitaires (couleurs, checks, config, logs)
+├── log/                    # Données volatiles (Historique)
+│   └── firewall_activity.log
+└── var/                    # Données d'état (Runtime)
+    ├── banned_ips.db       # Liste des IPs bannies persistante
+    └── reports/            # Rapports de sécurité générés
+        └── security_report_YYYY-MM-DD.txt
 ```
 
 ## 🛠️ Installation & Usage
